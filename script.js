@@ -6,6 +6,11 @@ let reachCount = 0;
 let vacantCount = 0;
 let occupiedCount = 0;
 
+// html2canvasライブラリを読み込む
+const script = document.createElement('script');
+script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+document.head.appendChild(script);
+
 function createStartMenu() {
     const body = document.body;
     body.innerHTML = ""; // 既存のコンテンツをクリア
@@ -35,7 +40,9 @@ function createStartMenu() {
             alert("名前を入力してください");
             return;
         }
+        console.log("Player Name:", playerName); // デバッグ用ログ
         playerUUID = generateUUIDFromName(playerName);
+        console.log("Generated UUID:", playerUUID); // デバッグ用ログ
         updateURLWithUUID(playerUUID); // URLにUUIDを追加
         createBingoCard();
     });
@@ -48,13 +55,20 @@ function createBingoCard() {
     // URLからUUIDを取得
     const urlParams = new URLSearchParams(window.location.search);
     playerUUID = urlParams.get('uuid') || playerUUID;
+    console.log("Player UUID from URL:", playerUUID); // デバッグ用ログ
 
     const body = document.body;
     body.innerHTML = ""; // スタートメニューをクリア
 
+    const contents = document.createElement("div");
+    contents.id = "contentsContainer";
+    body.appendChild(contents);
+
     const bingoCardContainer = document.createElement("div");
     bingoCardContainer.id = "bingoCardContainer";
-    body.appendChild(bingoCardContainer);
+    bingoCardContainer.style.padding = "1.5%"; // 3%の余白を追加
+    bingoCardContainer.style.width = "calc(100%)"; // 3%の余白を含めた幅
+    contents.appendChild(bingoCardContainer);
 
     const bingoCard = document.createElement("table");
     bingoCard.classList.add("bingo-card");
@@ -79,12 +93,12 @@ function createBingoCard() {
 
     const vacantCountElement = document.createElement("p");
     vacantCountElement.id = "vacantCount";
-    vacantCountElement.textContent = "空いているマス数: 24";
+    vacantCountElement.textContent = "未達成マス数: 24";
     statusContainer.appendChild(vacantCountElement);
 
     const occupiedCountElement = document.createElement("p");
     occupiedCountElement.id = "occupiedCount";
-    occupiedCountElement.textContent = "空いていないマス数: 1";
+    occupiedCountElement.textContent = "達成マス数: 1";
     statusContainer.appendChild(occupiedCountElement);
 
     const difficultyLists = {
@@ -121,7 +135,7 @@ function createBingoCard() {
     // Generate items for the bingo card
     for (let i = 0; i < 24; i++) { // 24 items (excluding FREE)
         const difficulty = selectDifficulty(difficultyProbabilities, seededRandom);
-        const item = selectRandomItem(difficultyLists[difficulty], selectedItems, seededRandom);
+        const item = selectRandomItem(difficultyLists[difficulty], selectedItems, seededRandom, Object.values(difficultyLists));
         selectedItems.push(item);
     }
 
@@ -143,6 +157,7 @@ function createBingoCard() {
                 td.addEventListener("click", () => {
                     td.classList.toggle("marked");
                     updateBingoStatus(bingoCard); // ビンゴ数、リーチ数、空いているマス数、空いていないマス数を更新
+                    updateURLWithState(bingoCard); // URLに状態を保存
                 });
             }
 
@@ -156,6 +171,18 @@ function createBingoCard() {
     vacantCount = 24;
     occupiedCount = 1;
     updateBingoStatus(bingoCard);
+    console.log("Bingo card created successfully"); // デバッグ用ログ
+
+    // スクリーンショットを撮って画像を保存するボタンを追加
+    const saveImageButtonContainer = document.createElement("div");
+    saveImageButtonContainer.style.textAlign = "center";
+    contents.appendChild(saveImageButtonContainer);
+
+    const saveImageButton = document.createElement("button");
+    saveImageButton.textContent = "画像を保存";
+    saveImageButton.addEventListener("click", saveScreenshot);
+    saveImageButtonContainer.appendChild(saveImageButton);
+    contents.appendChild(saveImageButtonContainer);
 }
 
 function selectDifficulty(probabilities, random) {
@@ -170,11 +197,27 @@ function selectDifficulty(probabilities, random) {
     return "impossible"; // Fallback
 }
 
-function selectRandomItem(list, usedItems, random) {
+function selectRandomItem(list, usedItems, random, fallbackLists) {
     let item;
+    let attempts = 0;
+    const maxAttempts = 100; // 無限ループ防止のための最大試行回数
     do {
         const randomIndex = Math.floor(random() * list.length);
         item = list[randomIndex];
+        attempts++;
+        if (attempts > maxAttempts) {
+            console.error("Failed to select a unique item after maximum attempts, switching to fallback list");
+            // Fallbackリストからアイテムを選択
+            for (const fallbackList of fallbackLists) {
+                if (fallbackList !== list) {
+                    const fallbackItem = selectRandomItem(fallbackList, usedItems, random, []);
+                    if (fallbackItem) {
+                        return fallbackItem;
+                    }
+                }
+            }
+            break;
+        }
     } while (usedItems.includes(item));
     return item;
 }
@@ -363,12 +406,65 @@ function calculateOccupiedCount(bingoCard) {
     return count;
 }
 
+function encodeBingoCardState(bingoCard) {
+    const rows = bingoCard.rows;
+    let state = "";
+    for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < rows[i].cells.length; j++) {
+            state += rows[i].cells[j].classList.contains("marked") ? "1" : "0";
+        }
+    }
+    const hexState = parseInt(state, 2).toString(16); // 16進数エンコード
+    return btoa(hexState); // BASE64エンコード
+}
+
+function decodeBingoCardState(bingoCard, state) {
+    const hexState = atob(state); // BASE64デコード
+    const binaryState = parseInt(hexState, 16).toString(2).padStart(25, '0'); // 16進数デコード
+    const rows = bingoCard.rows;
+    let index = 0;
+    for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < rows[i].cells.length; j++) {
+            if (binaryState[index] === "1") {
+                rows[i].cells[j].classList.add("marked");
+            } else {
+                rows[i].cells[j].classList.remove("marked");
+            }
+            index++;
+        }
+    }
+}
+
+function updateURLWithState(bingoCard) {
+    const state = encodeBingoCardState(bingoCard);
+    const url = new URL(window.location.href);
+    url.searchParams.set('state', state);
+    window.history.pushState({}, '', url);
+}
+
+function saveScreenshot() {
+    const bingoCardContainer = document.getElementById("bingoCardContainer");
+    html2canvas(bingoCardContainer, { scale: 2 }).then(canvas => { // 解像度を2倍に設定
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[-:.]/g, ""); // タイムスタンプを生成
+        link.href = canvas.toDataURL("image/png");
+        link.download = `bingo_screenshot_${timestamp}.png`; // ファイル名にタイムスタンプを追加
+        link.click();
+    });
+}
+
 // ページ読み込み時に処理を分岐
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('uuid')) {
         playerUUID = urlParams.get('uuid');
         createBingoCard();
+        if (urlParams.has('state')) {
+            const state = urlParams.get('state');
+            const bingoCard = document.getElementById("bingoCard");
+            decodeBingoCardState(bingoCard, state);
+            updateBingoStatus(bingoCard); // 状態を復元した後にステータスを更新
+        }
     } else {
         createStartMenu();
     }
