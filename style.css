@@ -5,34 +5,92 @@ body {
     align-items: center;
     min-height: 100vh;
     background-color: #f0f0f0;
-  }
-  
-  .bingo-card {
+}
+
+.contentsContainer {
+    width: 100vw; /* 画面の幅を100% */
+    height: 100vh; /* 画面の高さを100% */
+    overflow: hidden; /* オーバーフローを隠す */
+}
+
+.bingo-card {
     border-collapse: collapse;
     border: 2px solid #333;
-    width: 300px;
-    height: 300px;
+    width: 60vh; /* 画面の幅を100% */
+    height: 60vh; /* 画面の高さを100% */
     background-color: #fff;
-  }
-  
-  .bingo-card td {
-    border: 1px solid #333;
+}
+
+.bingo-card td {
+    border: 2px solid #333;
     width: 20%;
     height: 20%;
     text-align: center;
-    font-size: 16px;
+    font-size: 3.5vh;
     font-weight: bold;
     cursor: pointer;
     user-select: none;
-    padding: 5px;
-  }
-  
-  .bingo-card td.free {
+    padding: 1px;
+}
+
+.bingo-card td.free {
     background-color: #eee;
-  }
-  
-  .bingo-card td.marked {
+}
+
+.bingo-card td.marked {
     background-color: #ffc0cb; /* Light pink */
     text-decoration: line-through;
-  }
-  
+}
+
+#statusContainer p {
+    margin: 5px 0; /* 上下のマージンを5pxに設定 */
+}
+
+button {
+    font-size: 1em; /* ボタンのフォントサイズを大きくする */
+    padding: 5px 10px; /* ボタンのパディングを大きくする */
+    margin-top: 2px; /* 上に余白を追加 */
+}
+
+@media screen and (max-width: 959px) {
+	/* 959px以下に適用されるCSS（タブレット用） */
+    .bingo-card {
+        border-collapse: collapse;
+        border: 2px solid #333;
+        width: 80vw; /* 画面の幅を100% */
+        height: 80vw; /* 画面の高さを100% */
+        background-color: #fff;
+    }
+    .bingo-card td {
+        border: 1px solid #333;
+        width: 20%;
+        height: 20%;
+        text-align: center;
+        font-size: 3.5vw;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        padding: 1px;
+    }
+}
+@media screen and (max-width: 480px) {
+	/* 480px以下に適用されるCSS（スマホ用） */
+    .bingo-card {
+        border-collapse: collapse;
+        border: 2px solid #333;
+        width: 80vw; /* 画面の幅を100% */
+        height: 80vw; /* 画面の高さを100% */
+        background-color: #fff;
+    }
+    .bingo-card td {
+        border: 1px solid #333;
+        width: 20%;
+        height: 20%;
+        text-align: center;
+        font-size: 3.5vw;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        padding: 1px;
+    }
+}

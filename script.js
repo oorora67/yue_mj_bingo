@@ -62,6 +62,10 @@ function createBingoCard() {
 
     const contents = document.createElement("div");
     contents.id = "contentsContainer";
+    contents.style.height = "100vh"; // 画面の高さを100%
+    contents.style.display = "flex";
+    contents.style.flexDirection = "column";
+    contents.style.justifyContent = "center";
     body.appendChild(contents);
 
     const bingoCardContainer = document.createElement("div");
@@ -176,10 +180,14 @@ function createBingoCard() {
     // スクリーンショットを撮って画像を保存するボタンを追加
     const saveImageButtonContainer = document.createElement("div");
     saveImageButtonContainer.style.textAlign = "center";
+    saveImageButtonContainer.style.marginTop = "10px"; // 上に余白を追加
     contents.appendChild(saveImageButtonContainer);
 
     const saveImageButton = document.createElement("button");
     saveImageButton.textContent = "画像を保存";
+    saveImageButton.style.fontSize = "1.0em"; // ボタンのフォントサイズを大きくする
+    saveImageButton.style.width = "calc(80% + 1.5%)"; // 3%の余白を含めた幅
+    //saveImageButton.style.padding = "10px 20px"; // ボタンのパディングを大きくする
     saveImageButton.addEventListener("click", saveScreenshot);
     saveImageButtonContainer.appendChild(saveImageButton);
     contents.appendChild(saveImageButtonContainer);
